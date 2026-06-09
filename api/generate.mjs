@@ -1,10 +1,11 @@
-// ExamZen - Vercel 서버리스 함수 (v2: 모델 자동 대체 + 에러 상세 표시)
+// ExamZen - Vercel 서버리스 함수 (v3: 자동 재시도 + 모델 확장 + 진단)
 // 강의 텍스트 + 설정을 받아 Gemini API로 보내고, 개념 정리 + 시험 문제를 JSON으로 돌려준다.
 // API 키는 코드에 없다. Vercel 환경변수(GEMINI_API_KEY)에서 읽는다.
 
 export const config = { maxDuration: 60 };
 
-const MODELS = ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-flash-latest"];
+// 여유 많은 lite를 앞에, 그다음 일반 flash들. 되는 게 나올 때까지 시도.
+const MODELS = ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"];
 
 const TYPE_GUIDE = {
   mc4:   "객관식 4지선다. options 배열에 보기 4개를 '① ...','② ...','③ ...','④ ...' 형식으로.",
@@ -14,6 +15,8 @@ const TYPE_GUIDE = {
   sa:    "단답형. options는 빈 배열 []. answer는 핵심 정답.",
   essay: "서술형. options는 빈 배열 []. answer는 모범답안 요지."
 };
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST만 허용됩니다." });
@@ -30,7 +33,7 @@ export default async function handler(req, res) {
 
     if (text.length < 20) return res.status(400).json({ error: "강의 내용을 더 붙여넣어 주세요. (최소 20자)" });
 
-    const typeList = types.map(t => "- " + t + ": " + (TYPE_GUIDE[t] || "")).join("\n");
+    const typeList = types.map((t) => "- " + t + ": " + (TYPE_GUIDE[t] || "")).join("\n");
     const diffWord = difficulty < 34 ? "비교적 쉬운 편(기초 개념 확인 위주)"
                    : difficulty < 67 ? "중간 난이도(적용·비교 포함)"
                    : "어려운 편(분석·종합·함정 포함, '바람직한 어려움' 원리 적용)";
@@ -59,36 +62,54 @@ export default async function handler(req, res) {
       generationConfig: { temperature: 0.7, responseMimeType: "application/json" }
     };
 
-    let lastErr = "";
+    const errors = [];
     let raw = null;
 
     for (const model of MODELS) {
       const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + apiKey;
-      let gemRes;
-      try {
-        gemRes = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-      } catch (e) {
-        lastErr = "[" + model + "] 네트워크 오류: " + String(e);
-        continue;
+      let done = false;
+      for (let attempt = 0; attempt < 3 && !done; attempt++) {
+        let r;
+        try {
+          r = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+        } catch (e) {
+          errors.push(model + ":네트워크");
+          done = true;
+          break;
+        }
+
+        if (r.ok) {
+          const data = await r.json();
+          const cand = data && data.candidates && data.candidates[0];
+          const part = cand && cand.content && cand.content.parts && cand.content.parts[0];
+          raw = part && part.text;
+          if (raw) { done = true; break; }
+          errors.push(model + ":빈응답");
+          done = true;
+          break;
+        }
+
+        const status = r.status;
+        if (status === 503 || status === 429) {
+          errors.push(model + ":" + status + "(시도" + (attempt + 1) + ")");
+          if (attempt < 2) { await sleep(1500 * (attempt + 1)); continue; }
+          done = true;
+          break;
+        }
+
+        const t = await r.text();
+        errors.push(model + ":" + status + " " + t.slice(0, 100));
+        done = true;
+        break;
       }
-      if (!gemRes.ok) {
-        const errText = await gemRes.text();
-        lastErr = "[" + model + "] " + gemRes.status + ": " + errText.slice(0, 300);
-        continue;
-      }
-      const data = await gemRes.json();
-      raw = data && data.candidates && data.candidates[0] && data.candidates[0].content
-            && data.candidates[0].content.parts && data.candidates[0].content.parts[0]
-            && data.candidates[0].content.parts[0].text;
       if (raw) break;
-      lastErr = "[" + model + "] 응답이 비어 있음";
     }
 
-    if (!raw) return res.status(502).json({ error: "AI 호출 실패 — " + lastErr });
+    if (!raw) return res.status(502).json({ error: "AI 호출 실패 — " + errors.join(" | ") });
 
     let parsed;
     try {
