@@ -1,10 +1,9 @@
-// ExamZen - Vercel 서버리스 함수 (v3: 자동 재시도 + 모델 확장 + 진단)
-// 강의 텍스트 + 설정을 받아 Gemini API로 보내고, 개념 정리 + 시험 문제를 JSON으로 돌려준다.
+// ExamZen - Vercel 서버리스 함수 (v4: 텍스트 붙여넣기 + PDF 업로드 + 자동재시도)
+// 강의 텍스트(또는 PDF)를 받아 Gemini API로 보내고, 개념 정리 + 시험 문제를 JSON으로 돌려준다.
 // API 키는 코드에 없다. Vercel 환경변수(GEMINI_API_KEY)에서 읽는다.
 
 export const config = { maxDuration: 60 };
 
-// 여유 많은 lite를 앞에, 그다음 일반 flash들. 되는 게 나올 때까지 시도.
 const MODELS = ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"];
 
 const TYPE_GUIDE = {
@@ -27,24 +26,29 @@ export default async function handler(req, res) {
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
     const text = (body.text || "").toString().trim();
+    const pdfs = Array.isArray(body.pdfs) ? body.pdfs.filter((p) => p && p.data) : [];
     const types = Array.isArray(body.types) && body.types.length ? body.types : ["mc4"];
     const count = Math.max(3, Math.min(40, parseInt(body.count) || 10));
     const difficulty = Math.max(0, Math.min(100, parseInt(body.difficulty) || 30));
 
-    if (text.length < 20) return res.status(400).json({ error: "강의 내용을 더 붙여넣어 주세요. (최소 20자)" });
+    const hasText = text.length >= 20;
+    if (!hasText && pdfs.length === 0) {
+      return res.status(400).json({ error: "강의 내용을 붙여넣거나 PDF를 올려주세요." });
+    }
 
     const typeList = types.map((t) => "- " + t + ": " + (TYPE_GUIDE[t] || "")).join("\n");
     const diffWord = difficulty < 34 ? "비교적 쉬운 편(기초 개념 확인 위주)"
                    : difficulty < 67 ? "중간 난이도(적용·비교 포함)"
                    : "어려운 편(분석·종합·함정 포함, '바람직한 어려움' 원리 적용)";
 
-    const prompt = [
+    const lines = [
       "당신은 인지심리학 기반 학습 원리(시험 효과, 바람직한 어려움)를 아는 한국어 시험 출제 전문가입니다.",
-      "아래 [강의 내용]만을 근거로 학생의 장기 기억을 강화하는 시험을 만드세요. 강의에 없는 사실을 지어내지 마세요.",
-      "",
-      "[강의 내용]",
-      text.slice(0, 12000),
-      "",
+      "아래 강의 자료만을 근거로 학생의 장기 기억을 강화하는 시험을 만드세요. 자료에 없는 사실을 지어내지 마세요.",
+      ""
+    ];
+    if (hasText) { lines.push("[강의 내용(텍스트)]", text.slice(0, 12000), ""); }
+    if (pdfs.length) { lines.push("[강의 내용] 첨부된 PDF 파일(들)이 강의 자료입니다. 그 내용을 근거로 출제하세요.", ""); }
+    lines.push(
       "[요구사항]",
       "- 핵심 개념 3~5개를 골라 정리한다.",
       "- 문제는 총 " + count + "개. 선택된 유형들에 고르게 배분한다.",
@@ -55,10 +59,16 @@ export default async function handler(req, res) {
       '[출력 형식] 반드시 아래 JSON 구조로만, 다른 말 없이 출력:',
       '{ "concepts": [ { "term": "개념", "definition": "정의(2~3문장)", "example": "예시 1문장" } ],',
       '  "questions": [ { "type": "유형코드", "question": "지문", "options": ["보기 또는 빈 배열"], "answer": "정답", "explanation": "한 줄 해설" } ] }'
-    ].join("\n");
+    );
+    const prompt = lines.join("\n");
+
+    const parts = [{ text: prompt }];
+    for (const p of pdfs.slice(0, 5)) {
+      parts.push({ inlineData: { mimeType: p.mimeType || "application/pdf", data: p.data } });
+    }
 
     const payload = {
-      contents: [{ parts: [{ text: prompt }] }],
+      contents: [{ parts: parts }],
       generationConfig: { temperature: 0.7, responseMimeType: "application/json" }
     };
 

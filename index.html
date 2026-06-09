@@ -41,7 +41,19 @@ body{padding:24px 12px;}
 .screen.on{display:block;}
 .card{background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:14px 16px;margin-bottom:10px;}
 .card-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--color-border-tertiary);}
-.paste-box{width:100%;min-height:150px;border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:12px 14px;font-size:13px;line-height:1.6;font-family:inherit;color:var(--color-text-primary);resize:vertical;background:var(--color-background-primary);}
+.upload-zone{border:1.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-lg);background:var(--color-background-secondary);padding:18px;text-align:center;cursor:pointer;transition:border-color 0.15s,background 0.15s;margin-bottom:8px;}
+.upload-zone:hover,.upload-zone.drag{border-color:#7F77DD;background:#EEEDFE;}
+.uicon{font-size:22px;color:var(--color-text-secondary);margin-bottom:5px;}
+.utitle{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px;}
+.usub{font-size:11px;color:var(--color-text-secondary);}
+.fchip{display:flex;align-items:center;gap:7px;background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:7px 11px;margin-bottom:5px;font-size:12px;}
+.fchip i{color:#534AB7;font-size:14px;}
+.fchip .fn{flex:1;color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fchip .fsz{color:var(--color-text-secondary);font-size:11px;flex-shrink:0;}
+.fchip .rm-btn{cursor:pointer;color:var(--color-text-secondary);font-size:13px;flex-shrink:0;padding:2px;}
+.fchip .rm-btn:hover{color:#E24B4A;}
+.or-line{text-align:center;font-size:11px;color:var(--color-text-secondary);margin:6px 0 8px;}
+.paste-box{width:100%;min-height:120px;border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:12px 14px;font-size:13px;line-height:1.6;font-family:inherit;color:var(--color-text-primary);resize:vertical;background:var(--color-background-primary);}
 .paste-box:focus{outline:none;border-color:#7F77DD;}
 .paste-hint{font-size:11px;color:var(--color-text-secondary);margin-top:6px;display:flex;justify-content:space-between;}
 .cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
@@ -91,13 +103,14 @@ body{padding:24px 12px;}
 .btn-p:disabled{opacity:0.5;cursor:not-allowed;}
 .btn-s{padding:8px 18px;background:transparent;color:var(--color-text-secondary);border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:13px;cursor:pointer;}
 .empty-msg{text-align:center;padding:32px;color:var(--color-text-secondary);font-size:13px;}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;font-size:12px;padding:9px 16px;border-radius:99px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;font-size:12px;padding:9px 16px;border-radius:99px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99;max-width:90%;text-align:center;}
 .toast.show{opacity:0.95;}
 </style>
 </head>
 <body>
 
 <h2 class="sr-only">ExamZen — 시간에 쫓기는 사람이 더 효율적으로 공부하는 법</h2>
+<input type="file" id="pdfInput" accept=".pdf,application/pdf" multiple style="display:none">
 
 <div class="app">
   <div class="topbar">
@@ -124,8 +137,18 @@ body{padding:24px 12px;}
   <div class="screen on" id="sc1">
     <div class="main">
       <div class="card">
-        <div class="card-title"><i class="ti ti-clipboard-text" aria-hidden="true" style="font-size:14px;vertical-align:-1px;margin-right:5px;color:#534AB7;"></i>강의 내용 붙여넣기</div>
-        <textarea class="paste-box" id="srcText" placeholder="강의 PDF·필기·녹취록에서 공부할 내용을 복사해서 여기에 붙여넣으세요.&#10;&#10;예) 작업 기억은 정보를 일시적으로 저장하고 처리하는 인지 시스템으로, Miller(1956)는 7±2개의 청크를 동시에 처리할 수 있다고 보았다..."></textarea>
+        <div class="card-title"><i class="ti ti-clipboard-text" aria-hidden="true" style="font-size:14px;vertical-align:-1px;margin-right:5px;color:#534AB7;"></i>강의 자료 (PDF 올리기 또는 직접 붙여넣기)</div>
+
+        <div class="upload-zone" id="pdfZone" onclick="document.getElementById('pdfInput').click()">
+          <div class="uicon"><i class="ti ti-file-type-pdf" aria-hidden="true"></i></div>
+          <div class="utitle">PDF 강의 자료 올리기</div>
+          <div class="usub">클릭하거나 끌어다 놓으세요 · 파일당 3.5MB 이하 · PDF</div>
+        </div>
+        <div id="pdfList"></div>
+
+        <div class="or-line">— 또는 직접 붙여넣기 —</div>
+
+        <textarea class="paste-box" id="srcText" placeholder="강의 필기·녹취록·교재 내용을 복사해서 여기에 붙여넣으세요.&#10;(PDF를 올렸다면 비워둬도 됩니다.)"></textarea>
         <div class="paste-hint">
           <span><i class="ti ti-lock" aria-hidden="true" style="font-size:11px;vertical-align:-1px;"></i> 입력한 내용은 저장되지 않고, 문제 생성에만 쓰입니다.</span>
           <span id="charCount">0자</span>
@@ -239,13 +262,48 @@ body{padding:24px 12px;}
 <script>
 let cnt=10, ansMode='inline';
 let selTypes=new Set(['mc4']);
+let pdfFiles=[];
 let result={concepts:[],questions:[]};
+const MAX_PDF=3.5*1024*1024;
 
 const badgeMap={mc4:'객관식 4지',mc5:'객관식 5지',ox:'OX 퀴즈',blank:'괄호 넣기',sa:'단답형',essay:'서술형'};
 const classMap={mc4:'mc',mc5:'mc',ox:'ox',blank:'blank',sa:'sa',essay:'sa'};
 
 const srcEl=document.getElementById('srcText');
 srcEl.addEventListener('input',()=>{document.getElementById('charCount').textContent=srcEl.value.length+'자';});
+
+function formatSize(b){if(b<1024)return b+'B';if(b<1048576)return Math.round(b/1024)+'KB';return(b/1048576).toFixed(1)+'MB';}
+
+function renderPdfList(){
+  const el=document.getElementById('pdfList');
+  if(pdfFiles.length===0){el.innerHTML='';return;}
+  el.innerHTML=pdfFiles.map((f,i)=>'<div class="fchip"><i class="ti ti-file-type-pdf" aria-hidden="true"></i><span class="fn">'+esc(f.name)+'</span><span class="fsz">'+formatSize(f.size)+'</span><span class="rm-btn" onclick="removePdf('+i+')" aria-label="제거"><i class="ti ti-x" aria-hidden="true"></i></span></div>').join('');
+}
+function removePdf(i){pdfFiles.splice(i,1);renderPdfList();}
+function addPdfs(files){
+  Array.from(files).forEach(f=>{
+    if(!f.name.toLowerCase().endsWith('.pdf')){toast(f.name+' 은 PDF가 아닙니다.');return;}
+    if(f.size>MAX_PDF){toast(f.name+' 은 너무 큽니다(3.5MB 이하). 텍스트를 붙여넣어 주세요.');return;}
+    pdfFiles.push(f);
+  });
+  renderPdfList();
+}
+document.getElementById('pdfInput').addEventListener('change',function(){addPdfs(this.files);this.value='';});
+(function(){
+  const zone=document.getElementById('pdfZone');
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag');});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');addPdfs(e.dataTransfer.files);});
+})();
+
+function fileToBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(String(r.result).split(',')[1]);
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
+}
 
 function toggleType(el){
   const t=el.dataset.type;
@@ -257,6 +315,7 @@ function setAns(m){ansMode=m;document.getElementById('ai').classList.toggle('sel
 
 function resetAll(){
   srcEl.value='';document.getElementById('charCount').textContent='0자';
+  pdfFiles=[];renderPdfList();
   selTypes=new Set(['mc4']);
   document.querySelectorAll('.tb').forEach(el=>el.classList.toggle('sel',el.dataset.type==='mc4'));
   cnt=10;document.getElementById('cn').textContent=10;
@@ -266,7 +325,7 @@ function resetAll(){
 function toast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2200);
+  setTimeout(()=>t.classList.remove('show'),2600);
 }
 
 function go(n){
@@ -286,9 +345,9 @@ function pushLog(html){
   const line=document.createElement('div');line.className='gline';line.innerHTML=html;
   log.appendChild(line);
 }
-function startFakeLog(){
+function startFakeLog(hasPdf){
   const lines=[
-    '<span class="tick">✓</span><span>강의 내용 수신 완료</span>',
+    '<span class="tick">✓</span><span>'+(hasPdf?'PDF 업로드 완료':'강의 내용 수신 완료')+'</span>',
     '<span class="wk">▶</span><span>핵심 개념 추출 중...</span>',
     '<span class="wk">▶</span><span>문제 초안 생성 중...</span>',
     '<span class="wk">▶</span><span>난이도 배분 및 검증 중...</span>'
@@ -301,23 +360,29 @@ function startFakeLog(){
 
 async function startGenerate(){
   const text=srcEl.value.trim();
-  if(text.length<20){toast('강의 내용을 20자 이상 붙여넣어 주세요.');return;}
+  if(text.length<20 && pdfFiles.length===0){toast('강의 내용을 붙여넣거나 PDF를 올려주세요.');return;}
   if(selTypes.size===0){toast('문제 유형을 1개 이상 선택하세요.');return;}
 
   go(2);
   document.getElementById('retryBtn').style.display='none';
   document.getElementById('sp').style.borderTopColor='#534AB7';
   document.getElementById('sp').style.display='block';
-  document.getElementById('gt').textContent='강의 내용 분석 중...';
+  document.getElementById('gt').textContent='강의 자료 분석 중...';
   document.getElementById('gs').textContent='AI가 개념을 정리하고 문제를 만들고 있습니다';
-  startFakeLog();
+  startFakeLog(pdfFiles.length>0);
 
   try{
+    const pdfs=[];
+    for(const f of pdfFiles){
+      const data=await fileToBase64(f);
+      pdfs.push({name:f.name,mimeType:'application/pdf',data:data});
+    }
     const res=await fetch('/api/generate',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         text:text,
+        pdfs:pdfs,
         types:Array.from(selTypes),
         count:cnt,
         difficulty:parseInt(document.getElementById('diffRange').value)
@@ -329,7 +394,7 @@ async function startGenerate(){
     if(!data.questions||data.questions.length===0){throw new Error('문제를 만들지 못했습니다. 내용을 더 넣고 다시 시도해 주세요.');}
 
     result=data;
-    pushLog('<span class="tick">✓</span><span>완료 — 개념 '+(data.concepts?.length||0)+'개 · 문제 '+data.questions.length+'개</span>');
+    pushLog('<span class="tick">✓</span><span>완료 — 개념 '+(data.concepts?data.concepts.length:0)+'개 · 문제 '+data.questions.length+'개</span>');
     document.getElementById('sp').style.borderTopColor='#1D9E75';
     document.getElementById('gs').textContent='완료! 개념 정리를 먼저 확인하세요';
     renderConcepts();renderQ();
@@ -339,7 +404,7 @@ async function startGenerate(){
     document.getElementById('sp').style.display='none';
     document.getElementById('gt').textContent='생성에 실패했습니다';
     document.getElementById('gs').textContent=err.message;
-    pushLog('<span class="err">✕</span><span>'+err.message+'</span>');
+    pushLog('<span class="err">✕</span><span>'+esc(err.message)+'</span>');
     document.getElementById('retryBtn').style.display='inline-block';
   }
 }
@@ -349,12 +414,7 @@ function renderConcepts(){
   const list=result.concepts||[];
   document.getElementById('conceptMeta').textContent='핵심 개념 '+list.length+'개 추출됨';
   if(list.length===0){c.innerHTML='<div class="empty-msg">추출된 개념이 없습니다.</div>';return;}
-  c.innerHTML=list.map(x=>`
-    <div class="concept-card">
-      <div class="concept-term"><i class="ti ti-circle-dot" aria-hidden="true" style="font-size:14px;"></i>${esc(x.term||'')}</div>
-      <div class="concept-def">${esc(x.definition||'')}</div>
-      ${x.example?`<div class="concept-ex"><div class="concept-ex-label">예시</div>${esc(x.example)}</div>`:''}
-    </div>`).join('');
+  c.innerHTML=list.map(x=>'<div class="concept-card"><div class="concept-term"><i class="ti ti-circle-dot" aria-hidden="true" style="font-size:14px;"></i>'+esc(x.term||'')+'</div><div class="concept-def">'+esc(x.definition||'')+'</div>'+(x.example?'<div class="concept-ex"><div class="concept-ex-label">예시</div>'+esc(x.example)+'</div>':'')+'</div>').join('');
 }
 
 function toggleAns(btn,rid){
@@ -385,9 +445,7 @@ function renderQ(){
     const qText=type==='blank'?blankFmt(q.question||''):esc(q.question||'');
     const expl=q.explanation?'<div style="margin-top:5px;font-size:11px;color:#6E6E6E;">해설: '+esc(q.explanation)+'</div>':'';
     const reveal='<div class="ans-reveal" id="'+rid+'"><i class="ti ti-check" aria-hidden="true" style="font-size:12px;vertical-align:-1px;margin-right:4px;"></i>정답: '+esc(q.answer||'')+expl+'</div>';
-    const toggle=ansMode==='inline'
-      ? '<button class="ans-toggle" onclick="toggleAns(this,\''+rid+'\')"><i class="ti ti-eye" aria-hidden="true" style="font-size:11px;"></i> 정답 보기</button>'
-      : '';
+    const toggle=ansMode==='inline'?'<button class="ans-toggle" onclick="toggleAns(this,\''+rid+'\')"><i class="ti ti-eye" aria-hidden="true" style="font-size:11px;"></i> 정답 보기</button>':'';
     c.innerHTML+='<div class="q-card"><div class="q-top"><span class="qb '+(classMap[type]||'sa')+'">'+(badgeMap[type]||type)+'</span><div class="q-text">Q'+(i+1)+'. '+qText+'</div></div>'+optsHtml+toggle+reveal+'</div>';
   });
   const counts={};questions.forEach(q=>{counts[q.type]=(counts[q.type]||0)+1;});
