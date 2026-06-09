@@ -1,10 +1,10 @@
-// ExamZen - Vercel 서버리스 함수 (v4: 텍스트 붙여넣기 + PDF 업로드 + 자동재시도)
+// ExamZen - Vercel 서버리스 함수 (v5: PDF + 시간예산제 + 자동재시도)
 // 강의 텍스트(또는 PDF)를 받아 Gemini API로 보내고, 개념 정리 + 시험 문제를 JSON으로 돌려준다.
 // API 키는 코드에 없다. Vercel 환경변수(GEMINI_API_KEY)에서 읽는다.
 
 export const config = { maxDuration: 60 };
 
-const MODELS = ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"];
+const MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"];
 
 const TYPE_GUIDE = {
   mc4:   "객관식 4지선다. options 배열에 보기 4개를 '① ...','② ...','③ ...','④ ...' 형식으로.",
@@ -22,6 +22,9 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "서버에 GEMINI_API_KEY가 설정되지 않았습니다." });
+
+  const t0 = Date.now();
+  const BUDGET = 45000; // 45초 넘기면 멈추고 깔끔한 에러 반환(플랫폼 타임아웃 회피)
 
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
@@ -63,7 +66,7 @@ export default async function handler(req, res) {
     const prompt = lines.join("\n");
 
     const parts = [{ text: prompt }];
-    for (const p of pdfs.slice(0, 5)) {
+    for (const p of pdfs.slice(0, 3)) {
       parts.push({ inlineData: { mimeType: p.mimeType || "application/pdf", data: p.data } });
     }
 
@@ -74,11 +77,14 @@ export default async function handler(req, res) {
 
     const errors = [];
     let raw = null;
+    let timedOut = false;
 
     for (const model of MODELS) {
+      if (Date.now() - t0 > BUDGET) { timedOut = true; break; }
       const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + apiKey;
       let done = false;
-      for (let attempt = 0; attempt < 3 && !done; attempt++) {
+      for (let attempt = 0; attempt < 2 && !done; attempt++) {
+        if (Date.now() - t0 > BUDGET) { timedOut = true; done = true; break; }
         let r;
         try {
           r = await fetch(url, {
@@ -106,20 +112,24 @@ export default async function handler(req, res) {
         const status = r.status;
         if (status === 503 || status === 429) {
           errors.push(model + ":" + status + "(시도" + (attempt + 1) + ")");
-          if (attempt < 2) { await sleep(1500 * (attempt + 1)); continue; }
+          if (attempt < 1 && Date.now() - t0 < BUDGET - 3000) { await sleep(1200); continue; }
           done = true;
           break;
         }
 
-        const t = await r.text();
-        errors.push(model + ":" + status + " " + t.slice(0, 100));
+        const tx = await r.text();
+        errors.push(model + ":" + status + " " + tx.slice(0, 100));
         done = true;
         break;
       }
       if (raw) break;
+      if (timedOut) break;
     }
 
-    if (!raw) return res.status(502).json({ error: "AI 호출 실패 — " + errors.join(" | ") });
+    if (!raw) {
+      if (timedOut) return res.status(503).json({ error: "AI가 지금 혼잡합니다(시간 초과). 잠시 후 다시 시도하거나, 문제 수를 줄여 보세요." });
+      return res.status(502).json({ error: "AI 호출 실패 — " + errors.join(" | ") });
+    }
 
     let parsed;
     try {

@@ -388,8 +388,10 @@ async function startGenerate(){
         difficulty:parseInt(document.getElementById('diffRange').value)
       })
     });
-    const data=await res.json();
+    const rawText=await res.text();
     clearInterval(logTimer);
+    let data;
+    try{data=JSON.parse(rawText);}catch(e){throw new Error('서버 응답 오류: '+rawText.slice(0,160));}
     if(!res.ok){throw new Error(data.error||'생성 실패');}
     if(!data.questions||data.questions.length===0){throw new Error('문제를 만들지 못했습니다. 내용을 더 넣고 다시 시도해 주세요.');}
 
