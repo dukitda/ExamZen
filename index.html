@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ExamZen — 시간이 없어도, 더 깊게 공부하세요</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<style>
+:root{
+  --color-background-primary:#ffffff;
+  --color-background-secondary:#F7F6F3;
+  --color-text-primary:#1A1A1A;
+  --color-text-secondary:#6E6E6E;
+  --color-border-secondary:#E4E2DC;
+  --color-border-tertiary:#EFEDE8;
+  --border-radius-md:8px;
+  --border-radius-lg:12px;
+  --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+html,body{background:#F2F0EB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:var(--color-text-primary);}
+body{padding:24px 12px;}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+*{box-sizing:border-box;margin:0;padding:0;}
+.app{max-width:860px;margin:0 auto;border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);overflow:hidden;background:var(--color-background-primary);box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+.topbar{background:var(--color-background-primary);border-bottom:1px solid var(--color-border-secondary);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;}
+.logo{font-size:17px;font-weight:500;color:var(--color-text-primary);display:flex;align-items:center;gap:8px;}
+.badge{background:#EEEDFE;color:#3C3489;font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;}
+.tagline{font-size:12px;color:var(--color-text-secondary);font-style:italic;}
+.phil{background:#EEEDFE;border-bottom:1px solid #AFA9EC;padding:10px 20px;}
+.phil-title{font-size:12px;font-weight:500;color:#3C3489;margin-bottom:3px;display:flex;align-items:center;gap:5px;}
+.phil-body{font-size:12px;color:#534AB7;line-height:1.6;}
+.stepbar{background:var(--color-background-primary);border-bottom:1px solid var(--color-border-secondary);padding:0 16px;display:flex;overflow-x:auto;}
+.step{padding:11px 14px 9px;font-size:12px;color:var(--color-text-secondary);border-bottom:2px solid transparent;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0;}
+.step.active{color:#534AB7;border-bottom-color:#534AB7;font-weight:500;}
+.step.done{color:#0F6E56;}
+.snum{width:16px;height:16px;border-radius:50%;background:var(--color-background-secondary);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;}
+.step.active .snum{background:#EEEDFE;color:#534AB7;}
+.step.done .snum{background:#E1F5EE;color:#0F6E56;}
+.main{padding:20px;background:var(--color-background-secondary);}
+.screen{display:none;}
+.screen.on{display:block;}
+.card{background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:14px 16px;margin-bottom:10px;}
+.card-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--color-border-tertiary);}
+.paste-box{width:100%;min-height:150px;border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:12px 14px;font-size:13px;line-height:1.6;font-family:inherit;color:var(--color-text-primary);resize:vertical;background:var(--color-background-primary);}
+.paste-box:focus{outline:none;border-color:#7F77DD;}
+.paste-hint{font-size:11px;color:var(--color-text-secondary);margin-top:6px;display:flex;justify-content:space-between;}
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.cfg-card{background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:12px 14px;}
+.cfg-label{font-size:11px;color:var(--color-text-secondary);margin-bottom:8px;font-weight:500;}
+.tbrow{display:flex;flex-wrap:wrap;gap:4px;}
+.tb{font-size:11px;padding:3px 9px;border-radius:99px;border:1px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary);cursor:pointer;transition:all 0.12s;}
+.tb.sel{background:#EEEDFE;border-color:#AFA9EC;color:#3C3489;font-weight:500;}
+.cnt-row{display:flex;align-items:center;gap:8px;}
+.cnt-btn{width:24px;height:24px;border-radius:50%;border:1px solid var(--color-border-secondary);background:var(--color-background-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--color-text-primary);}
+.cnt-num{font-size:18px;font-weight:500;min-width:26px;text-align:center;color:var(--color-text-primary);}
+.ans-row{display:flex;gap:6px;}
+.ans-btn{flex:1;padding:8px 6px;font-size:11px;border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-secondary);cursor:pointer;text-align:center;transition:all 0.12s;}
+.ans-btn.sel{background:#EEEDFE;border-color:#AFA9EC;color:#3C3489;font-weight:500;}
+.gen-box{background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:28px 20px;text-align:center;margin-bottom:12px;}
+.spinner{width:32px;height:32px;border:3px solid #EEEDFE;border-top-color:#534AB7;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gen-log{background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 14px;font-size:11px;font-family:var(--font-mono);color:var(--color-text-secondary);text-align:left;max-height:130px;overflow:hidden;}
+.gline{padding:2px 0;display:flex;gap:7px;}
+.tick{color:#1D9E75;}.wk{color:#534AB7;}.err{color:#E24B4A;}
+.concept-card{background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:14px 16px;margin-bottom:10px;}
+.concept-term{font-size:14px;font-weight:500;color:#534AB7;margin-bottom:6px;display:flex;align-items:center;gap:6px;padding-bottom:6px;border-bottom:1px solid #EEEDFE;}
+.concept-def{font-size:12px;color:var(--color-text-primary);line-height:1.65;margin-bottom:8px;}
+.concept-ex{font-size:12px;color:#534AB7;line-height:1.55;padding:8px 12px;background:#EEEDFE;border-radius:var(--border-radius-md);border-left:3px solid #AFA9EC;}
+.concept-ex-label{font-size:10px;font-weight:500;color:#3C3489;margin-bottom:3px;}
+.rh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.rt{font-size:15px;font-weight:500;color:var(--color-text-primary);}
+.rm{font-size:11px;color:var(--color-text-secondary);margin-top:2px;}
+.notice{font-size:11px;color:var(--color-text-secondary);background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:6px 10px;display:inline-flex;align-items:center;gap:4px;cursor:pointer;}
+.q-card{background:var(--color-background-primary);border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:13px 15px;margin-bottom:8px;}
+.q-top{display:flex;align-items:flex-start;gap:7px;margin-bottom:9px;}
+.qb{font-size:10px;font-weight:500;padding:2px 8px;border-radius:99px;white-space:nowrap;flex-shrink:0;margin-top:1px;}
+.qb.mc{background:#EEEDFE;color:#3C3489;}
+.qb.ox{background:#FAEEDA;color:#633806;}
+.qb.blank{background:#E1F5EE;color:#085041;}
+.qb.sa{background:#FAECE7;color:#712B13;}
+.q-text{font-size:13px;color:var(--color-text-primary);line-height:1.65;flex:1;}
+.q-opts{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px;}
+.q-opts.single{grid-template-columns:1fr;}
+.q-opt{font-size:12px;padding:6px 10px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-secondary);border:1px solid var(--color-border-tertiary);}
+.ans-toggle{margin-top:8px;display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#534AB7;cursor:pointer;padding:4px 8px;border:1px solid #AFA9EC;border-radius:var(--border-radius-md);background:#EEEDFE;}
+.ans-toggle:hover{background:#CECBF6;}
+.ans-reveal{display:none;margin-top:6px;padding:7px 10px;background:#EEEDFE;border-radius:var(--border-radius-md);font-size:12px;color:#3C3489;border-left:3px solid #AFA9EC;line-height:1.6;}
+.ans-reveal.show{display:block;}
+.btm{background:var(--color-background-primary);border-top:1px solid var(--color-border-secondary);padding:12px 20px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
+.btn-p{padding:8px 18px;background:#534AB7;color:white;border:none;border-radius:var(--border-radius-md);font-size:13px;font-weight:500;cursor:pointer;}
+.btn-p:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-s{padding:8px 18px;background:transparent;color:var(--color-text-secondary);border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-md);font-size:13px;cursor:pointer;}
+.empty-msg{text-align:center;padding:32px;color:var(--color-text-secondary);font-size:13px;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;font-size:12px;padding:9px 16px;border-radius:99px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99;}
+.toast.show{opacity:0.95;}
+</style>
+</head>
+<body>
+
+<h2 class="sr-only">ExamZen — 시간에 쫓기는 사람이 더 효율적으로 공부하는 법</h2>
+
+<div class="app">
+  <div class="topbar">
+    <div class="logo">
+      <i class="ti ti-brain" aria-hidden="true" style="font-size:19px;color:#534AB7;"></i>
+      ExamZen <span class="badge">beta</span>
+    </div>
+    <div class="tagline">시간이 없어도, 더 깊게 공부하세요</div>
+  </div>
+
+  <div class="phil">
+    <div class="phil-title"><i class="ti ti-bolt" aria-hidden="true" style="font-size:13px;"></i>ExamZen 철학</div>
+    <div class="phil-body">바쁘다는 이유로 공부를 대충 하고 싶지 않았다. AI가 개념을 정리하고 문제를 만든다. 당신은 이해하고, 풀고, 더 깊이 공부하면 된다.</div>
+  </div>
+
+  <div class="stepbar">
+    <div class="step active" id="s1" onclick="go(1)"><div class="snum">1</div>자료 입력</div>
+    <div class="step" id="s2"><div class="snum">2</div>AI 분석</div>
+    <div class="step" id="s3"><div class="snum">3</div>개념 정리</div>
+    <div class="step" id="s4"><div class="snum">4</div>문제 확인</div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="screen on" id="sc1">
+    <div class="main">
+      <div class="card">
+        <div class="card-title"><i class="ti ti-clipboard-text" aria-hidden="true" style="font-size:14px;vertical-align:-1px;margin-right:5px;color:#534AB7;"></i>강의 내용 붙여넣기</div>
+        <textarea class="paste-box" id="srcText" placeholder="강의 PDF·필기·녹취록에서 공부할 내용을 복사해서 여기에 붙여넣으세요.&#10;&#10;예) 작업 기억은 정보를 일시적으로 저장하고 처리하는 인지 시스템으로, Miller(1956)는 7±2개의 청크를 동시에 처리할 수 있다고 보았다..."></textarea>
+        <div class="paste-hint">
+          <span><i class="ti ti-lock" aria-hidden="true" style="font-size:11px;vertical-align:-1px;"></i> 입력한 내용은 저장되지 않고, 문제 생성에만 쓰입니다.</span>
+          <span id="charCount">0자</span>
+        </div>
+      </div>
+
+      <div class="cfg-grid">
+        <div class="cfg-card">
+          <div class="cfg-label"><i class="ti ti-list-check" aria-hidden="true" style="font-size:12px;vertical-align:-1px;margin-right:3px;"></i>문제 유형 선택</div>
+          <div class="tbrow" id="typeRow">
+            <div class="tb sel" data-type="mc4" onclick="toggleType(this)">객관식 4지</div>
+            <div class="tb" data-type="mc5" onclick="toggleType(this)">객관식 5지</div>
+            <div class="tb" data-type="ox" onclick="toggleType(this)">OX 퀴즈</div>
+            <div class="tb" data-type="blank" onclick="toggleType(this)">괄호 넣기</div>
+            <div class="tb" data-type="sa" onclick="toggleType(this)">단답형</div>
+            <div class="tb" data-type="essay" onclick="toggleType(this)">서술형</div>
+          </div>
+        </div>
+        <div class="cfg-card">
+          <div class="cfg-label"><i class="ti ti-hash" aria-hidden="true" style="font-size:12px;vertical-align:-1px;margin-right:3px;"></i>문제 수</div>
+          <div class="cnt-row">
+            <div class="cnt-btn" onclick="chg(-3)">−</div>
+            <div class="cnt-num" id="cn">10</div>
+            <div class="cnt-btn" onclick="chg(3)">+</div>
+            <span style="font-size:11px;color:var(--color-text-secondary);">문제</span>
+          </div>
+        </div>
+        <div class="cfg-card">
+          <div class="cfg-label"><i class="ti ti-adjustments-horizontal" aria-hidden="true" style="font-size:12px;vertical-align:-1px;margin-right:3px;"></i>난이도 — Bjork(1994) 기반</div>
+          <div style="display:flex;align-items:center;gap:7px;">
+            <span style="font-size:11px;color:var(--color-text-secondary);">쉬움</span>
+            <input type="range" id="diffRange" min="0" max="100" value="30" step="1" style="flex:1;" oninput="document.getElementById('dl').textContent=this.value+'%'">
+            <span style="font-size:11px;color:var(--color-text-secondary);">어려움</span>
+            <span id="dl" style="font-size:12px;font-weight:500;color:#534AB7;min-width:30px;">30%</span>
+          </div>
+        </div>
+        <div class="cfg-card">
+          <div class="cfg-label"><i class="ti ti-layout-list" aria-hidden="true" style="font-size:12px;vertical-align:-1px;margin-right:3px;"></i>정답 표기</div>
+          <div class="ans-row">
+            <div class="ans-btn sel" id="ai" onclick="setAns('inline')">
+              <i class="ti ti-layout-bottombar" aria-hidden="true" style="font-size:14px;display:block;margin-bottom:3px;"></i>문제별 펼치기
+            </div>
+            <div class="ans-btn" id="as" onclick="setAns('sheet')">
+              <i class="ti ti-eye-off" aria-hidden="true" style="font-size:14px;display:block;margin-bottom:3px;"></i>전부 숨김
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="btm">
+      <button class="btn-s" onclick="loadSaved()">저장된 결과 불러오기</button>
+      <button class="btn-s" onclick="resetAll()">초기화</button>
+      <button class="btn-p" id="goBtn" onclick="startGenerate()">문제 만들기 →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="screen" id="sc2">
+    <div class="main">
+      <div class="gen-box">
+        <div class="spinner" id="sp"></div>
+        <div style="font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px;" id="gt">강의 내용 분석 중...</div>
+        <div style="font-size:12px;color:var(--color-text-secondary);" id="gs">핵심 개념을 추출하고 있습니다</div>
+      </div>
+      <div class="gen-log" id="gl"></div>
+    </div>
+    <div class="btm">
+      <button class="btn-s" id="retryBtn" onclick="go(1)" style="display:none;">← 다시 시도</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="screen" id="sc3">
+    <div class="main">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div>
+          <div style="font-size:15px;font-weight:500;color:var(--color-text-primary);">개념 정리</div>
+          <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px;" id="conceptMeta"></div>
+        </div>
+        <button class="btn-p" style="font-size:12px;padding:7px 14px;" onclick="go(4)">문제 보기 →</button>
+      </div>
+      <div id="conceptList"></div>
+    </div>
+    <div class="btm">
+      <button class="btn-s" onclick="go(1)">← 처음으로</button>
+      <button class="btn-p" onclick="go(4)">문제 보기 →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="screen" id="sc4">
+    <div class="main">
+      <div class="rh">
+        <div>
+          <div class="rt">생성된 시험 문제</div>
+          <div class="rm" id="rm"></div>
+        </div>
+        <span class="notice" onclick="window.print()"><i class="ti ti-printer" aria-hidden="true" style="font-size:12px;"></i>인쇄 / PDF 저장</span>
+      </div>
+      <div id="ql"></div>
+    </div>
+    <div class="btm">
+      <button class="btn-s" onclick="go(1)">← 처음으로</button>
+      <button class="btn-p" onclick="saveResult()">이 결과 저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let cnt=10, ansMode='inline';
+let selTypes=new Set(['mc4']);
+let result={concepts:[],questions:[]};
+
+const badgeMap={mc4:'객관식 4지',mc5:'객관식 5지',ox:'OX 퀴즈',blank:'괄호 넣기',sa:'단답형',essay:'서술형'};
+const classMap={mc4:'mc',mc5:'mc',ox:'ox',blank:'blank',sa:'sa',essay:'sa'};
+
+const srcEl=document.getElementById('srcText');
+srcEl.addEventListener('input',()=>{document.getElementById('charCount').textContent=srcEl.value.length+'자';});
+
+function toggleType(el){
+  const t=el.dataset.type;
+  if(selTypes.has(t)){selTypes.delete(t);el.classList.remove('sel');}
+  else{selTypes.add(t);el.classList.add('sel');}
+}
+function chg(d){cnt=Math.max(3,Math.min(40,cnt+d));document.getElementById('cn').textContent=cnt;}
+function setAns(m){ansMode=m;document.getElementById('ai').classList.toggle('sel',m==='inline');document.getElementById('as').classList.toggle('sel',m==='sheet');}
+
+function resetAll(){
+  srcEl.value='';document.getElementById('charCount').textContent='0자';
+  selTypes=new Set(['mc4']);
+  document.querySelectorAll('.tb').forEach(el=>el.classList.toggle('sel',el.dataset.type==='mc4'));
+  cnt=10;document.getElementById('cn').textContent=10;
+  document.getElementById('diffRange').value=30;document.getElementById('dl').textContent='30%';
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+function go(n){
+  [1,2,3,4].forEach(i=>{
+    document.getElementById('sc'+i).classList.remove('on');
+    const s=document.getElementById('s'+i);s.classList.remove('active','done');
+  });
+  document.getElementById('sc'+n).classList.add('on');
+  document.getElementById('s'+n).classList.add('active');
+  for(let i=1;i<n;i++)document.getElementById('s'+i).classList.add('done');
+  window.scrollTo(0,0);
+}
+
+let logTimer=null;
+function pushLog(html){
+  const log=document.getElementById('gl');
+  const line=document.createElement('div');line.className='gline';line.innerHTML=html;
+  log.appendChild(line);
+}
+function startFakeLog(){
+  const lines=[
+    '<span class="tick">✓</span><span>강의 내용 수신 완료</span>',
+    '<span class="wk">▶</span><span>핵심 개념 추출 중...</span>',
+    '<span class="wk">▶</span><span>문제 초안 생성 중...</span>',
+    '<span class="wk">▶</span><span>난이도 배분 및 검증 중...</span>'
+  ];
+  document.getElementById('gl').innerHTML='';
+  let i=0;
+  pushLog(lines[0]);i=1;
+  logTimer=setInterval(()=>{ if(i<lines.length){pushLog(lines[i]);i++;} },1400);
+}
+
+async function startGenerate(){
+  const text=srcEl.value.trim();
+  if(text.length<20){toast('강의 내용을 20자 이상 붙여넣어 주세요.');return;}
+  if(selTypes.size===0){toast('문제 유형을 1개 이상 선택하세요.');return;}
+
+  go(2);
+  document.getElementById('retryBtn').style.display='none';
+  document.getElementById('sp').style.borderTopColor='#534AB7';
+  document.getElementById('sp').style.display='block';
+  document.getElementById('gt').textContent='강의 내용 분석 중...';
+  document.getElementById('gs').textContent='AI가 개념을 정리하고 문제를 만들고 있습니다';
+  startFakeLog();
+
+  try{
+    const res=await fetch('/api/generate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        text:text,
+        types:Array.from(selTypes),
+        count:cnt,
+        difficulty:parseInt(document.getElementById('diffRange').value)
+      })
+    });
+    const data=await res.json();
+    clearInterval(logTimer);
+    if(!res.ok){throw new Error(data.error||'생성 실패');}
+    if(!data.questions||data.questions.length===0){throw new Error('문제를 만들지 못했습니다. 내용을 더 넣고 다시 시도해 주세요.');}
+
+    result=data;
+    pushLog('<span class="tick">✓</span><span>완료 — 개념 '+(data.concepts?.length||0)+'개 · 문제 '+data.questions.length+'개</span>');
+    document.getElementById('sp').style.borderTopColor='#1D9E75';
+    document.getElementById('gs').textContent='완료! 개념 정리를 먼저 확인하세요';
+    renderConcepts();renderQ();
+    setTimeout(()=>go(3),700);
+  }catch(err){
+    clearInterval(logTimer);
+    document.getElementById('sp').style.display='none';
+    document.getElementById('gt').textContent='생성에 실패했습니다';
+    document.getElementById('gs').textContent=err.message;
+    pushLog('<span class="err">✕</span><span>'+err.message+'</span>');
+    document.getElementById('retryBtn').style.display='inline-block';
+  }
+}
+
+function renderConcepts(){
+  const c=document.getElementById('conceptList');
+  const list=result.concepts||[];
+  document.getElementById('conceptMeta').textContent='핵심 개념 '+list.length+'개 추출됨';
+  if(list.length===0){c.innerHTML='<div class="empty-msg">추출된 개념이 없습니다.</div>';return;}
+  c.innerHTML=list.map(x=>`
+    <div class="concept-card">
+      <div class="concept-term"><i class="ti ti-circle-dot" aria-hidden="true" style="font-size:14px;"></i>${esc(x.term||'')}</div>
+      <div class="concept-def">${esc(x.definition||'')}</div>
+      ${x.example?`<div class="concept-ex"><div class="concept-ex-label">예시</div>${esc(x.example)}</div>`:''}
+    </div>`).join('');
+}
+
+function toggleAns(btn,rid){
+  const r=document.getElementById(rid);
+  const showing=r.classList.contains('show');
+  r.classList.toggle('show',!showing);
+  btn.innerHTML=(showing?'<i class="ti ti-eye" aria-hidden="true" style="font-size:11px;"></i> 정답 보기':'<i class="ti ti-eye-off" aria-hidden="true" style="font-size:11px;"></i> 정답 숨기기');
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function blankFmt(s){return esc(s).replace(/\(\s*([①-⑩\d]+)\s*\)/g,'<span style="color:#3C3489;font-weight:500;background:#EEEDFE;padding:1px 5px;border-radius:3px;border:1px solid #AFA9EC;">( $1 )</span>');}
+
+function renderQ(){
+  const c=document.getElementById('ql');c.innerHTML='';
+  const questions=result.questions||[];
+  if(questions.length===0){
+    c.innerHTML='<div class="empty-msg"><i class="ti ti-alert-circle" aria-hidden="true" style="font-size:20px;display:block;margin-bottom:8px;"></i>생성된 문제가 없습니다.</div>';
+    document.getElementById('rm').textContent='';return;
+  }
+  questions.forEach((q,i)=>{
+    const rid='r'+i;
+    const type=q.type||'sa';
+    let optsHtml='';
+    if(Array.isArray(q.options)&&q.options.length){
+      const single=q.options.length>=5||type==='ox';
+      optsHtml='<div class="q-opts'+(single?' single':'')+'">'+q.options.map(o=>'<div class="q-opt">'+esc(o)+'</div>').join('')+'</div>';
+    }
+    const qText=type==='blank'?blankFmt(q.question||''):esc(q.question||'');
+    const expl=q.explanation?'<div style="margin-top:5px;font-size:11px;color:#6E6E6E;">해설: '+esc(q.explanation)+'</div>':'';
+    const reveal='<div class="ans-reveal" id="'+rid+'"><i class="ti ti-check" aria-hidden="true" style="font-size:12px;vertical-align:-1px;margin-right:4px;"></i>정답: '+esc(q.answer||'')+expl+'</div>';
+    const toggle=ansMode==='inline'
+      ? '<button class="ans-toggle" onclick="toggleAns(this,\''+rid+'\')"><i class="ti ti-eye" aria-hidden="true" style="font-size:11px;"></i> 정답 보기</button>'
+      : '';
+    c.innerHTML+='<div class="q-card"><div class="q-top"><span class="qb '+(classMap[type]||'sa')+'">'+(badgeMap[type]||type)+'</span><div class="q-text">Q'+(i+1)+'. '+qText+'</div></div>'+optsHtml+toggle+reveal+'</div>';
+  });
+  const counts={};questions.forEach(q=>{counts[q.type]=(counts[q.type]||0)+1;});
+  const summary=Object.keys(counts).map(t=>(badgeMap[t]||t)+' '+counts[t]).join(' · ');
+  document.getElementById('rm').textContent=summary+' · 총 '+questions.length+'문제';
+}
+
+function saveResult(){
+  if(!result.questions||result.questions.length===0){toast('저장할 결과가 없습니다.');return;}
+  try{
+    localStorage.setItem('examzen_last',JSON.stringify({result:result,savedAt:new Date().toISOString()}));
+    toast('저장되었습니다. 다음에 "저장된 결과 불러오기"로 다시 볼 수 있어요.');
+  }catch(e){toast('저장에 실패했습니다.');}
+}
+
+function loadSaved(){
+  try{
+    const raw=localStorage.getItem('examzen_last');
+    if(!raw){toast('저장된 결과가 없습니다.');return;}
+    const obj=JSON.parse(raw);
+    result=obj.result;
+    renderConcepts();renderQ();
+    go(3);
+    toast('저장된 결과를 불러왔습니다.');
+  }catch(e){toast('불러오기에 실패했습니다.');}
+}
+</script>
+</body>
+</html>
