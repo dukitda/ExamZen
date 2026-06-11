@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ExamZen — 시간이 없어도, 더 깊게 공부하세요</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Sans+KR:wght@400;500;700&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#C0392B">
 <link rel="apple-touch-icon" href="/icon-192.png">
@@ -206,6 +206,115 @@ body{background:#EFECE3;font-family:var(--sans);color:var(--ink);padding:18px 8p
   .sheet{border:none;box-shadow:none;}
 }
 </style>
+<style>
+/* ===== 테마 v2: 강의실 칠판 + 수능형 시험지 ===== */
+:root{
+  --bd:#41635A; --bdline:rgba(247,245,234,.35); --bdline2:rgba(247,245,234,.22);
+  --wood:#C9A47C; --wood-dk:#B08F66;
+  --ck:#F7F5EA; --ckdim:rgba(247,245,234,.7); --ckdim2:rgba(247,245,234,.55);
+  --yel:#F6DFA0; --pnk:#F4C3BA; --mnt:#BFE3D2;
+  --hand:'Gaegu',cursive;
+}
+html,body{background:#E9E5DA;}
+.sheet{background:
+  radial-gradient(ellipse at 18% 25%, rgba(255,255,255,.05), transparent 45%),
+  radial-gradient(ellipse at 80% 70%, rgba(255,255,255,.04), transparent 40%),
+  var(--bd);
+  border:8px solid var(--wood);border-radius:14px;
+  box-shadow:0 5px 16px rgba(0,0,0,.18), inset 0 0 0 1.5px var(--wood-dk);overflow:hidden;}
+.nav{background:transparent;border-bottom:1.5px dashed var(--bdline);}
+.brand{font-family:var(--hand);font-size:27px;color:var(--ck);}
+.brand .zen{color:var(--yel);}
+.mi{color:var(--ckdim);}
+.mi.on{color:var(--yel);border-bottom-color:var(--yel);}
+.mi .cnt{color:var(--pnk);}
+.stepbar{background:transparent;border-bottom:1px dashed var(--bdline2);}
+.step{color:var(--ckdim2);}
+.step.active{color:var(--yel);border-bottom-color:var(--yel);}
+.step.done{color:var(--mnt);}
+.snum{background:rgba(247,245,234,.14);color:var(--ckdim);}
+.step.active .snum{background:rgba(246,223,160,.22);color:var(--yel);}
+.step.done .snum{background:rgba(191,227,210,.2);color:var(--mnt);}
+.rev-banner{background:rgba(244,195,186,.12);border-bottom:1px dashed rgba(244,195,186,.45);}
+.rev-txt{color:var(--ck);}
+.rev-txt b{color:var(--pnk);font-family:var(--hand);font-size:14px;}
+.rev-later{color:var(--ckdim2);}
+.rev-go{border-radius:8px;}
+/* 1·2·3단계 = 칠판 위 */
+#sc1 .main,#sc2 .main,#sc3 .main{background:transparent;}
+#sc1{--red:#F4C3BA;--sub:rgba(247,245,234,.68);}
+#sc2{--red:#F4C3BA;--green:#BFE3D2;--sub:rgba(247,245,234,.7);}
+#sc1 .card{background:transparent;border:1.5px dashed var(--bdline);border-radius:12px;}
+#sc1 .card-title{font-family:var(--hand);font-size:19px;color:var(--ck);border-bottom:none;padding-bottom:2px;}
+.upload-zone{background:transparent;border:2px dashed var(--bdline);border-radius:12px;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--yel);background:rgba(246,223,160,.07);}
+.utitle{font-family:var(--sans);font-size:14px;color:var(--ck);}
+.usub{color:var(--ckdim2);}
+.fchip{background:rgba(247,245,234,.95);border:none;border-radius:8px;}
+.or-line{color:var(--ckdim2);}
+.stt-btn{background:transparent;border:1.5px solid var(--bdline);color:var(--ckdim);border-radius:8px;}
+.stt-btn.rec{background:#C0392B;border-color:#C0392B;color:#fff;}
+.stt-status{color:var(--yel);}
+.stt-interim{color:var(--ckdim2);}
+.paste-box{border:none;border-radius:6px;box-shadow:0 3px 9px rgba(0,0,0,.25);
+  background:#FDFCF4;background-image:repeating-linear-gradient(transparent,transparent 21px,#EAE7DA 22px);color:#222;}
+.paste-box:focus{outline:2px solid var(--yel);}
+#sc1 .paste-hint,#sc1 .paste-hint span{color:var(--ckdim2);}
+.cfg-card{background:transparent;border:1.5px solid var(--bdline2);border-radius:12px;}
+.cfg-label{font-family:var(--hand);font-size:16.5px;color:var(--yel);}
+.tb{background:transparent;border:1.5px solid var(--bdline);color:var(--ckdim);border-radius:99px;}
+.tb.sel{background:var(--ck);border-color:var(--ck);color:#3A4A42;}
+.cnt-btn{background:transparent;border:1.5px solid var(--bdline);color:var(--ckdim);}
+.cnt-btn:hover{color:var(--yel);border-color:var(--yel);}
+.cnt-num{color:var(--ck);font-family:var(--hand);font-size:22px;}
+#sc1 input[type=range]{accent-color:#F6DFA0;}
+.cfg-input{background:#FDFCF4;border:none;border-radius:6px;color:#222;}
+.cfg-input:focus{outline:2px solid var(--yel);}
+.btm{background:transparent;border-top:1px dashed var(--bdline2);}
+.btn-p{background:var(--yel);color:#4A3F22;font-family:var(--hand);font-size:17px;letter-spacing:0;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.2);}
+.btn-p:hover{background:#F9E8B4;}
+.btn-s{color:var(--ckdim);border:1.5px solid var(--bdline);border-radius:10px;background:transparent;}
+.btn-s:hover{color:var(--ck);}
+.gen-box{background:transparent;border:1.5px dashed var(--bdline);border-radius:12px;color:var(--ck);}
+.spinner{border-color:rgba(247,245,234,.22);border-top-color:var(--yel);}
+.gen-log{background:rgba(0,0,0,.18);border:none;border-radius:8px;color:var(--ckdim);}
+.tick{color:var(--mnt);}.wk{color:var(--yel);}.err{color:var(--pnk);}
+.rh-title{font-family:var(--hand);font-size:20px;color:var(--ck);border-left-color:var(--yel);}
+.rh-meta{color:var(--ckdim2);}
+.concept-card{background:#FDFCF4;border:none;border-radius:6px;box-shadow:0 3px 8px rgba(0,0,0,.22);}
+/* 4단계 = 칠판 위에 놓인 수능형 시험지 */
+#sc4{background:#fff;margin:16px;box-shadow:0 4px 14px rgba(0,0,0,.3);}
+#sc4 .main{background:#fff;}
+#sc4 .exam-head{padding-top:30px;}
+#sc4 .exam-head::before{content:"제 1 교시";position:absolute;left:18px;top:12px;font-family:var(--serif);font-weight:900;font-size:13px;color:#111;}
+.eh-year{letter-spacing:2px;}
+.eh-title{font-size:29px;letter-spacing:8px;font-weight:900;}
+.eh-title .hl{border-bottom:double 3.5px #111;}
+#sc4 .btm{background:#fff;border-top:1px solid #E2DFD5;}
+#sc4 .btn-s{color:#666;border-color:#CCC8BC;}
+.q{padding-left:12px;}
+.q-no{font-weight:900;}
+.q.marked-ok::before{content:"○";position:absolute;left:-8px;top:-14px;color:#C0392B;font-size:36px;font-weight:400;opacity:.7;font-family:var(--serif);pointer-events:none;}
+.q.marked-no::before{content:"／";position:absolute;left:-4px;top:-14px;color:#C0392B;font-size:36px;font-weight:700;opacity:.75;font-family:var(--serif);pointer-events:none;}
+.score-box{border-width:2.5px;background:#fff;}
+/* 내 시험노트 = 채점부(종이) */
+#viewNote{background:#fff;margin:16px;box-shadow:0 4px 14px rgba(0,0,0,.3);}
+#viewNote .main{background:#fff;}
+@media(max-width:640px){
+  .sheet{border-width:5px;border-radius:10px;}
+  #sc4,#viewNote{margin:8px;}
+  .brand{font-size:23px;}
+  .eh-title{font-size:20px;letter-spacing:4px;}
+  #sc4 .exam-head::before{display:none;}
+}
+@media print{
+  .sheet{background:#fff;border:none;}
+  #sc4,#viewNote{margin:0;box-shadow:none;}
+  #ql{column-count:2;column-gap:36px;column-rule:1px solid #111;}
+  #ql .q{break-inside:avoid;}
+  .score-box{break-inside:avoid;}
+}
+</style>
 </head>
 <body>
 <h2 class="sr-only">ExamZen — 시간에 쫓기는 사람이 더 효율적으로 공부하는 법</h2>
@@ -283,7 +392,8 @@ body{background:#EFECE3;font-family:var(--sans);color:var(--ink);padding:18px 8p
             </div>
           </div>
           <div class="cfg-card">
-            <div class="cfg-label">시험 정보 (선택) — 출제경향 반영</div>
+            <div class="cfg-label">시험 정보 <span style="color:var(--red);">(베타)</span> — 출제경향 반영</div>
+            <div style="font-size:11px;color:var(--sub);line-height:1.6;margin-bottom:8px;">어떤 시험을 준비하는지 적으면, AI가 그 시험의 전형적인 출제 스타일(문체·형식·난이도 감각)을 흉내 내 출제합니다. 문제 내용 자체는 올린 자료에서만 나옵니다. 비워두면 일반 출제.</div>
             <input class="cfg-input" id="exSubject" placeholder="과목·시험명 (예: 인지공학심리학)">
             <input class="cfg-input" id="exOrg" placeholder="학교·기관 (예: 연세대학교)">
             <select class="cfg-input" id="exKind" style="margin-bottom:0;">
@@ -689,6 +799,7 @@ function gradeExam(){
       });
       const expl=q.explanation?'<div class="explain">해설: '+esc(q.explanation)+'</div>':'';
       fb.innerHTML='<div class="grade-mark '+(ok?'ok':'no')+'">'+(ok?'✓ 정답':'✗ 오답 — 오답노트에 저장됩니다')+'</div>'+expl;
+      document.getElementById('q'+i).classList.add(ok?'marked-ok':'marked-no');
       selfGrades[i]=ok;
     }else{
       const myEl=document.getElementById('myans'+i);
@@ -707,6 +818,9 @@ function gradeExam(){
 }
 function selfGrade(i,ok){
   selfGrades[i]=ok;
+  const qe=document.getElementById('q'+i);
+  qe.classList.remove('marked-ok','marked-no');
+  qe.classList.add(ok?'marked-ok':'marked-no');
   document.getElementById('sok'+i).classList.toggle('ok-on',ok);
   document.getElementById('sno'+i).classList.toggle('no-on',!ok);
   updateScore();
