@@ -209,7 +209,7 @@ body{background:#EFECE3;font-family:var(--sans);color:var(--ink);padding:18px 8p
 </head>
 <body>
 <h2 class="sr-only">ExamZen — 시간에 쫓기는 사람이 더 효율적으로 공부하는 법</h2>
-<input type="file" id="pdfInput" accept=".pdf,application/pdf" multiple style="display:none">
+<input type="file" id="pdfInput" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation" multiple style="display:none">
 
 <div class="sheet">
   <div class="nav">
@@ -234,10 +234,10 @@ body{background:#EFECE3;font-family:var(--sans);color:var(--ink);padding:18px 8p
     <div class="screen on" id="sc1">
       <div class="main">
         <div class="card">
-          <div class="card-title">강의 자료 (PDF 올리기 또는 직접 붙여넣기)</div>
+          <div class="card-title">강의 자료 (PDF·PPT 올리기 또는 직접 붙여넣기)</div>
           <div class="upload-zone" id="pdfZone" onclick="document.getElementById('pdfInput').click()">
-            <div class="utitle">PDF 강의 자료 올리기</div>
-            <div class="usub">클릭하거나 끌어다 놓으세요 · 파일당 3.5MB 이하 · PDF</div>
+            <div class="utitle">PDF·PPT 강의 자료 올리기</div>
+            <div class="usub">클릭하거나 끌어다 놓으세요 · PDF는 파일당 3.5MB 이하 · PPT는 PPTX 형식(글자만 추출)</div>
           </div>
           <div id="pdfList"></div>
           <div class="or-line">— 또는 직접 붙여넣기 —</div>
@@ -432,15 +432,59 @@ function showView(v){
 }
 
 /* ---------- PDF ---------- */
+let pptFiles=[];
 function renderPdfList(){
   const el=document.getElementById('pdfList');
-  if(pdfFiles.length===0){el.innerHTML='';return;}
-  el.innerHTML=pdfFiles.map((f,i)=>'<div class="fchip"><span class="fn">'+esc(f.name)+'</span><span class="fsz">'+formatSize(f.size)+'</span><span class="rm-btn" onclick="removePdf('+i+')" aria-label="제거">×</span></div>').join('');
+  let html=pdfFiles.map((f,i)=>'<div class="fchip"><span class="fn">'+esc(f.name)+'</span><span class="fsz">'+formatSize(f.size)+'</span><span class="rm-btn" onclick="removePdf('+i+')" aria-label="제거">×</span></div>').join('');
+  html+=pptFiles.map((p,i)=>'<div class="fchip"><span class="fn">'+esc(p.name)+'</span><span class="fsz">글자 '+p.text.length+'자 추출됨</span><span class="rm-btn" onclick="removePpt('+i+')" aria-label="제거">×</span></div>').join('');
+  el.innerHTML=html;
 }
 function removePdf(i){pdfFiles.splice(i,1);renderPdfList();}
+function removePpt(i){pptFiles.splice(i,1);renderPdfList();}
+function loadJSZip(){
+  return new Promise((res,rej)=>{
+    if(window.JSZip)return res();
+    const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    sc.onload=()=>res();
+    sc.onerror=()=>rej(new Error('로드 실패'));
+    document.head.appendChild(sc);
+  });
+}
+function xmlDecode(s){return s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'");}
+async function addPptx(f){
+  toast(f.name+' 글자 추출 중...');
+  try{
+    await loadJSZip();
+    const zip=await window.JSZip.loadAsync(f);
+    const names=Object.keys(zip.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n))
+      .sort((a,b)=>parseInt(a.match(/\d+/)[0])-parseInt(b.match(/\d+/)[0]));
+    if(names.length===0){toast(f.name+' 에서 슬라이드를 찾지 못했습니다.');return;}
+    const out=[];
+    for(let i=0;i<names.length;i++){
+      const xml=await zip.file(names[i]).async('string');
+      const texts=[];
+      const re=/<a:t[^>]*>([\s\S]*?)<\/a:t>/g;
+      let m;
+      while((m=re.exec(xml))!==null){texts.push(xmlDecode(m[1]));}
+      const t=texts.join(' ').replace(/\s+/g,' ').trim();
+      if(t)out.push('[슬라이드 '+(i+1)+'] '+t);
+    }
+    const full=out.join('\n');
+    if(full.length<20){toast(f.name+' 은 글자가 거의 없습니다(이미지 위주 PPT). 파워포인트에서 PDF로 저장해 올려주세요.');return;}
+    pptFiles.push({name:f.name,size:f.size,text:full});
+    renderPdfList();
+    toast(f.name+' — '+names.length+'장에서 글자 추출 완료.');
+  }catch(e){
+    toast(f.name+' 읽기 실패. PPTX 형식인지 확인해주세요.');
+  }
+}
 function addPdfs(files){
   Array.from(files).forEach(f=>{
-    if(!f.name.toLowerCase().endsWith('.pdf')){toast(f.name+' 은 PDF가 아닙니다.');return;}
+    const n=f.name.toLowerCase();
+    if(n.endsWith('.pptx')){addPptx(f);return;}
+    if(n.endsWith('.ppt')){toast(f.name+': 구형 PPT 형식은 지원하지 않습니다. 파워포인트에서 "다른 이름으로 저장 → PPTX"로 바꿔주세요.');return;}
+    if(!n.endsWith('.pdf')){toast(f.name+' 은 PDF/PPTX가 아닙니다.');return;}
     if(f.size>MAX_PDF){toast(f.name+' 은 너무 큽니다(3.5MB 이하). 텍스트를 붙여넣어 주세요.');return;}
     pdfFiles.push(f);
   });
@@ -471,7 +515,7 @@ function toggleType(el){
 function chg(d){cnt=Math.max(5,Math.min(40,cnt+d));document.getElementById('cn').textContent=cnt;}
 function resetAll(){
   srcEl.value='';document.getElementById('charCount').textContent='0자';
-  pdfFiles=[];renderPdfList();
+  pdfFiles=[];pptFiles=[];renderPdfList();
   selTypes=new Set(['mc4']);
   document.querySelectorAll('.tb').forEach(el=>el.classList.toggle('sel',el.dataset.type==='mc4'));
   cnt=10;document.getElementById('cn').textContent=10;
@@ -510,8 +554,10 @@ function startFakeLog(hasPdf){
   logTimer=setInterval(()=>{ if(i<lines.length){pushLog(lines[i]);i++;} },1400);
 }
 async function startGenerate(){
-  const text=srcEl.value.trim();
-  if(text.length<20 && pdfFiles.length===0){toast('강의 내용을 붙여넣거나 PDF를 올려주세요.');return;}
+  let text=srcEl.value.trim();
+  pptFiles.forEach(p=>{text+=(text?'\n\n':'')+'[PPT 강의자료: '+p.name+']\n'+p.text;});
+  text=text.trim();
+  if(text.length<20 && pdfFiles.length===0){toast('강의 내용을 붙여넣거나 PDF·PPT를 올려주세요.');return;}
   if(selTypes.size===0){toast('문제 유형을 1개 이상 선택하세요.');return;}
   if(sttOn)stopStt();
   go(2);
@@ -520,7 +566,7 @@ async function startGenerate(){
   document.getElementById('sp').style.display='block';
   document.getElementById('gt').textContent='강의 자료 분석 중...';
   document.getElementById('gs').textContent='AI가 개념을 정리하고 문제를 만들고 있습니다';
-  startFakeLog(pdfFiles.length>0);
+  startFakeLog(pdfFiles.length>0||pptFiles.length>0);
   try{
     const pdfs=[];
     for(const f of pdfFiles){
