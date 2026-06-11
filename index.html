@@ -110,6 +110,17 @@ body{padding:24px 12px;}
 .empty-msg{text-align:center;padding:32px;color:var(--color-text-secondary);font-size:13px;}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;font-size:12px;padding:9px 16px;border-radius:99px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99;max-width:90%;text-align:center;}
 .toast.show{opacity:0.95;}
+
+/* 모바일(좁은 화면) 보정 */
+@media (max-width: 640px){
+  body{padding:10px 4px;}
+  .cfg-grid{grid-template-columns:1fr;}      /* 설정 카드 1열로 */
+  .q-opts{grid-template-columns:1fr;}        /* 보기도 1열로 */
+  .tagline{display:none;}                    /* 상단 문구 숨김(줄바꿈 깨짐 방지) */
+  .paste-hint{flex-direction:column;gap:3px;}
+  .btm{justify-content:stretch;}
+  .btm .btn-p,.btm .btn-s{flex:1;}           /* 하단 버튼 가로 꽉 차게 */
+}
 </style>
 </head>
 <body>
