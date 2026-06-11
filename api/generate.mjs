@@ -51,8 +51,22 @@ export default async function handler(req, res) {
     ];
     if (hasText) { lines.push("[강의 내용(텍스트)]", text.slice(0, 12000), ""); }
     if (pdfs.length) { lines.push("[강의 내용] 첨부된 PDF 파일(들)이 강의 자료입니다. 그 내용을 근거로 출제하세요.", ""); }
+    const ex = body.examInfo || {};
+    const exParts = [];
+    if (ex.subject) exParts.push("과목·시험명: " + String(ex.subject).slice(0, 60));
+    if (ex.org) exParts.push("학교·기관: " + String(ex.org).slice(0, 60));
+    if (ex.kind) exParts.push("시험 종류: " + String(ex.kind).slice(0, 30));
+    if (exParts.length) {
+      lines.push(
+        "[시험 정보] " + exParts.join(" / "),
+        "- 위 시험에서 전형적으로 쓰이는 출제 스타일·문체·자주 나오는 문제 형식을 반영해 출제한다.",
+        "- 단, 문제의 내용 자체는 반드시 위 강의 자료에 근거한다. 자료에 없는 사실을 시험 경향이라는 이유로 지어내지 않는다.",
+        ""
+      );
+    }
     lines.push(
       "[요구사항]",
+      "- 자료가 영어 등 외국어여도 모든 출력(개념·정의·문제·보기·해설)은 한국어로 작성하고, 핵심 전문용어는 영어를 병기한다. 예: 작업기억(working memory).",
       "- 핵심 개념 3~5개를 골라 정리한다.",
       "- 문제는 총 " + count + "개. 선택된 유형들에 고르게 배분한다.",
       "- 난이도: " + diffWord + ".",
