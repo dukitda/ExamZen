@@ -1,10 +1,10 @@
-// ExamZen - Vercel 서버리스 함수 (v6: 문제별 개념 태그)
+// ExamZen - Vercel 서버리스 함수 (v7: 모델 목록 갱신 — 1.5-flash 은퇴, 2.5-flash-lite 1순위)
 // 강의 텍스트(또는 PDF)를 받아 Gemini API로 보내고, 개념 정리 + 시험 문제를 JSON으로 돌려준다.
 // API 키는 코드에 없다. Vercel 환경변수(GEMINI_API_KEY)에서 읽는다.
 
 export const config = { maxDuration: 60 };
 
-const MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash-latest"];
+const MODELS = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-flash-latest"];
 
 const TYPE_GUIDE = {
   mc4:   "객관식 4지선다. options 배열에 보기 4개를 '① ...','② ...','③ ...','④ ...' 형식으로.",
