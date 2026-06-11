@@ -149,6 +149,19 @@ body{background:#EFECE3;font-family:var(--sans);color:var(--ink);padding:18px 8p
 .foot-note{text-align:center;font-size:11px;color:var(--sub);padding:14px 0 6px;font-style:italic;}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:12px;padding:9px 16px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99;max-width:90%;text-align:center;}
 .toast.show{opacity:.95;}
+.overlay{position:fixed;inset:0;background:rgba(28,27,23,.55);display:none;z-index:50;align-items:flex-start;justify-content:center;padding:40px 12px;}
+.overlay.show{display:flex;}
+.modal{background:var(--paper);border:1px solid var(--ink);max-width:560px;width:100%;max-height:80vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.25);}
+.modal-head{font-family:var(--serif);font-size:15px;font-weight:700;padding:14px 18px;border-bottom:2px solid var(--ink);display:flex;justify-content:space-between;align-items:center;}
+.modal-x{cursor:pointer;font-size:18px;color:var(--sub);padding:0 4px;}
+.modal-x:hover{color:var(--red);}
+.saved-row{padding:12px 18px;border-bottom:1px dashed var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.saved-info{flex:1;min-width:160px;}
+.saved-name{font-family:var(--serif);font-weight:700;font-size:14px;}
+.saved-meta{font-size:11px;color:var(--sub);margin-top:2px;}
+.saved-btn{font-size:12px;padding:6px 14px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer;font-weight:700;}
+.saved-del{font-size:12px;padding:6px 10px;border:1px solid var(--line);background:#fff;color:var(--sub);cursor:pointer;}
+.saved-del:hover{border-color:var(--red);color:var(--red);}
 @media(max-width:640px){
   body{padding:8px 4px;}
   .eh-title{font-size:18px;}
@@ -307,6 +320,13 @@ body{background:#EFECE3;font-family:var(--sans);color:var(--ink);padding:18px 8p
   </div>
 </div>
 
+<div class="overlay" id="savedOverlay" onclick="if(event.target===this)closeSaved()">
+  <div class="modal">
+    <div class="modal-head">저장된 문제지 <span class="modal-x" onclick="closeSaved()">×</span></div>
+    <div id="savedList"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -315,6 +335,7 @@ let selTypes=new Set(['mc4']);
 let pdfFiles=[];
 let result={concepts:[],questions:[]};
 let picks={}, selfGrades={}, graded=false, attemptId=null;
+let examName='';
 const MAX_PDF=3.5*1024*1024;
 const CIRC=['①','②','③','④','⑤'];
 const badgeMap={mc4:'객관식 4지',mc5:'객관식 5지',ox:'OX 퀴즈',blank:'괄호 넣기',sa:'단답형',essay:'서술형'};
@@ -454,6 +475,7 @@ async function startGenerate(){
     if(!res.ok){throw new Error(data.error||'생성 실패');}
     if(!data.questions||data.questions.length===0){throw new Error('문제를 만들지 못했습니다. 내용을 더 넣고 다시 시도해 주세요.');}
     result=data;
+    examName='';
     pushLog('<span class="tick">✓</span><span>완료 — 개념 '+(data.concepts?data.concepts.length:0)+'개 · 문제 '+data.questions.length+'개</span>');
     document.getElementById('sp').style.borderTopColor='var(--green)';
     document.getElementById('gs').textContent='완료! 개념 정리를 먼저 확인하세요';
@@ -494,7 +516,7 @@ function blankFmt(s){return esc(s).replace(/\(\s*([①-⑩\d]+)\s*\)/g,'<span st
 function renderExam(){
   picks={};selfGrades={};graded=false;attemptId=null;
   const today=new Date();
-  document.getElementById('ehYear').textContent=today.getFullYear()+'년 '+(today.getMonth()+1)+'월 '+today.getDate()+'일 시행';
+  document.getElementById('ehYear').textContent=today.getFullYear()+'년 '+(today.getMonth()+1)+'월 '+today.getDate()+'일 시행'+(examName?' · '+examName:'');
   const qs=result.questions||[];
   const counts={};qs.forEach(q=>{counts[q.type]=(counts[q.type]||0)+1;});
   const typeStr=Object.keys(counts).map(t=>(badgeMap[t]||t)).join('·');
@@ -682,24 +704,73 @@ function clearHistory(){
 }
 
 /* ---------- 저장/불러오기 ---------- */
-function saveResult(){
-  if(!result.questions||result.questions.length===0){toast('저장할 문제지가 없습니다.');return;}
-  try{
-    localStorage.setItem('examzen_last',JSON.stringify({result:result,savedAt:new Date().toISOString()}));
-    toast('저장되었습니다. 다음에 "저장된 문제지 불러오기"로 다시 풀 수 있어요.');
-  }catch(e){toast('저장에 실패했습니다.');}
-}
-function loadSaved(){
+function getSavedList(){
+  let list=[];
+  try{list=JSON.parse(localStorage.getItem('examzen_saved')||'[]');}catch(e){list=[];}
+  // 옛 버전(단일 저장)에서 이사
   try{
     const raw=localStorage.getItem('examzen_last');
-    if(!raw){toast('저장된 문제지가 없습니다.');return;}
-    const obj=JSON.parse(raw);
-    result=obj.result;
-    renderConcepts();renderExam();
-    go(3);
-    toast('저장된 문제지를 불러왔습니다. 다시 풀 수 있습니다.');
-  }catch(e){toast('불러오기에 실패했습니다.');}
+    if(raw){
+      const obj=JSON.parse(raw);
+      if(obj&&obj.result)list.push({id:Date.now(),name:'이전에 저장한 문제지',date:obj.savedAt||new Date().toISOString(),result:obj.result});
+      localStorage.removeItem('examzen_last');
+      localStorage.setItem('examzen_saved',JSON.stringify(list));
+    }
+  }catch(e){}
+  return list;
 }
+function setSavedList(list){
+  try{localStorage.setItem('examzen_saved',JSON.stringify(list));return true;}catch(e){return false;}
+}
+function saveResult(){
+  if(!result.questions||result.questions.length===0){toast('저장할 문제지가 없습니다.');return;}
+  let name=prompt('이 문제지의 시험명을 입력하세요\n(예: 인지공학 기말 대비 1회)',examName||'');
+  if(name===null)return;
+  name=name.trim()||'이름 없는 시험';
+  examName=name;
+  let list=getSavedList();
+  list.push({id:Date.now(),name:name,date:new Date().toISOString(),result:result});
+  if(list.length>20)list=list.slice(-20);
+  if(!setSavedList(list)){toast('저장 공간이 부족합니다. 오래된 문제지를 삭제해 주세요.');return;}
+  const today=new Date();
+  document.getElementById('ehYear').textContent=today.getFullYear()+'년 '+(today.getMonth()+1)+'월 '+today.getDate()+'일 시행 · '+examName;
+  toast('"'+name+'" 저장 완료. "저장된 문제지 불러오기"에서 관리할 수 있어요.');
+}
+function fmtDate(iso){
+  const d=new Date(iso);
+  return d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+function loadSaved(){
+  const list=getSavedList();
+  if(list.length===0){toast('저장된 문제지가 없습니다. 채점 후 "이 문제지 저장"을 눌러보세요.');return;}
+  renderSavedList();
+  document.getElementById('savedOverlay').classList.add('show');
+}
+function renderSavedList(){
+  const list=getSavedList().slice().reverse();
+  const el=document.getElementById('savedList');
+  if(list.length===0){el.innerHTML='<div class="empty-msg">저장된 문제지가 없습니다.</div>';return;}
+  el.innerHTML=list.map(it=>'<div class="saved-row"><div class="saved-info"><div class="saved-name">'+esc(it.name)+'</div><div class="saved-meta">'+fmtDate(it.date)+' · '+((it.result&&it.result.questions)?it.result.questions.length:0)+'문항</div></div><button class="saved-btn" onclick="loadExam('+it.id+')">불러오기</button><button class="saved-del" onclick="deleteSaved('+it.id+')">삭제</button></div>').join('');
+}
+function loadExam(id){
+  const it=getSavedList().find(x=>x.id===id);
+  if(!it){toast('문제지를 찾지 못했습니다.');return;}
+  result=it.result;
+  examName=it.name;
+  closeSaved();
+  renderConcepts();renderExam();
+  go(3);
+  toast('"'+it.name+'" 을 불러왔습니다. 다시 풀 수 있습니다.');
+}
+function deleteSaved(id){
+  const it=getSavedList().find(x=>x.id===id);
+  if(!it)return;
+  if(!confirm('"'+it.name+'" 문제지를 삭제할까요?'))return;
+  setSavedList(getSavedList().filter(x=>x.id!==id));
+  renderSavedList();
+  toast('삭제했습니다.');
+}
+function closeSaved(){document.getElementById('savedOverlay').classList.remove('show');}
 
 updateWrongBadge();
 
