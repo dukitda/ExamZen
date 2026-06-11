@@ -1,4 +1,4 @@
-// ExamZen - Vercel 서버리스 함수 (v5: PDF + 시간예산제 + 자동재시도)
+// ExamZen - Vercel 서버리스 함수 (v6: 문제별 개념 태그)
 // 강의 텍스트(또는 PDF)를 받아 Gemini API로 보내고, 개념 정리 + 시험 문제를 JSON으로 돌려준다.
 // API 키는 코드에 없다. Vercel 환경변수(GEMINI_API_KEY)에서 읽는다.
 
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
       "",
       '[출력 형식] 반드시 아래 JSON 구조로만, 다른 말 없이 출력:',
       '{ "concepts": [ { "term": "개념", "definition": "정의(2~3문장)", "example": "예시 1문장" } ],',
-      '  "questions": [ { "type": "유형코드", "question": "지문", "options": ["보기 또는 빈 배열"], "answer": "정답", "explanation": "한 줄 해설" } ] }'
+      '  "questions": [ { "type": "유형코드", "question": "지문", "options": ["보기 또는 빈 배열"], "answer": "정답", "explanation": "한 줄 해설", "concept": "이 문제가 묻는 개념(반드시 위 concepts의 term 중 하나)" } ] }'
     );
     const prompt = lines.join("\n");
 
