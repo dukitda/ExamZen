@@ -154,6 +154,22 @@ body{background:#EFECE3;font-family:var(--sans);color:var(--ink);padding:18px 8p
 .rev-txt b{color:var(--red);font-family:var(--serif);}
 .rev-go{font-size:12px;padding:7px 16px;background:var(--red);color:#fff;border:none;cursor:pointer;font-weight:700;white-space:nowrap;}
 .rev-later{font-size:11.5px;color:var(--sub);cursor:pointer;text-decoration:underline;white-space:nowrap;}
+.fc-stage{padding:26px 18px 10px;display:flex;justify-content:center;}
+.fc-card{width:100%;max-width:440px;height:260px;perspective:1000px;cursor:pointer;}
+.fc-inner{position:relative;width:100%;height:100%;transition:transform .45s;transform-style:preserve-3d;}
+.fc-card.flip .fc-inner{transform:rotateY(180deg);}
+.fc-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:1.5px solid var(--ink);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px;text-align:center;}
+.fc-front .fc-term{font-family:var(--serif);font-size:24px;font-weight:700;}
+.fc-front .fc-hint{font-size:11px;color:var(--sub);margin-top:14px;}
+.fc-back{transform:rotateY(180deg);overflow:auto;justify-content:flex-start;text-align:left;}
+.fc-back .fc-term{font-family:var(--serif);font-size:15px;font-weight:700;margin-bottom:8px;border-bottom:1px solid var(--line2);padding-bottom:6px;width:100%;}
+.fc-back .fc-def{font-size:13px;line-height:1.75;width:100%;}
+.fc-back .fc-ex{font-size:12px;color:var(--sub);line-height:1.7;margin-top:8px;padding:7px 10px;background:var(--paper);border-left:3px solid var(--line);width:100%;}
+.fc-ctrl{display:flex;align-items:center;justify-content:center;gap:14px;padding:14px 0 22px;flex-wrap:wrap;}
+.fc-nav{font-size:13px;padding:8px 18px;border:1px solid var(--ink);background:#fff;cursor:pointer;font-weight:700;}
+.fc-nav:disabled{opacity:.35;cursor:default;}
+.fc-cnt{font-family:var(--serif);font-size:14px;font-weight:700;min-width:64px;text-align:center;}
+.fc-shuffle{font-size:11.5px;color:var(--sub);cursor:pointer;text-decoration:underline;}
 .overlay{position:fixed;inset:0;background:rgba(28,27,23,.55);display:none;z-index:50;align-items:flex-start;justify-content:center;padding:40px 12px;}
 .overlay.show{display:flex;}
 .modal{background:var(--paper);border:1px solid var(--ink);max-width:560px;width:100%;max-height:80vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.25);}
@@ -285,7 +301,7 @@ body{background:#EFECE3;font-family:var(--sans);color:var(--ink);padding:18px 8p
             <div class="rh-title">개념 정리</div>
             <div class="rh-meta" id="conceptMeta"></div>
           </div>
-          <button class="btn-p" style="font-size:12px;padding:8px 16px;" onclick="go(4)">시험 풀기 →</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn-s" style="font-size:12px;" onclick="openFc()">🃏 플래시카드로 외우기</button><button class="btn-p" style="font-size:12px;padding:8px 16px;" onclick="go(4)">시험 풀기 →</button></div>
         </div>
         <div id="conceptList"></div>
       </div>
@@ -323,6 +339,26 @@ body{background:#EFECE3;font-family:var(--sans);color:var(--ink);padding:18px 8p
       <div class="eh-title">내 <span class="hl">시험노트</span></div>
     </div>
     <div class="main" id="noteBody"></div>
+  </div>
+</div>
+
+<div class="overlay" id="fcOverlay" onclick="if(event.target===this)closeFc()">
+  <div class="modal">
+    <div class="modal-head">플래시카드 — 보기 전에 먼저 떠올려 보세요 <span class="modal-x" onclick="closeFc()">×</span></div>
+    <div class="fc-stage">
+      <div class="fc-card" id="fcCard" onclick="flipFc()">
+        <div class="fc-inner">
+          <div class="fc-face fc-front"><div class="fc-term" id="fcTerm"></div><div class="fc-hint">카드를 탭하면 정의가 나옵니다</div></div>
+          <div class="fc-face fc-back"><div class="fc-term" id="fcTermB"></div><div class="fc-def" id="fcDef"></div><div class="fc-ex" id="fcEx"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="fc-ctrl">
+      <button class="fc-nav" id="fcPrev" onclick="moveFc(-1)">← 이전</button>
+      <span class="fc-cnt" id="fcCnt"></span>
+      <button class="fc-nav" id="fcNext" onclick="moveFc(1)">다음 →</button>
+      <span class="fc-shuffle" onclick="shuffleFc()">섞기</span>
+    </div>
   </div>
 </div>
 
@@ -778,6 +814,38 @@ function deleteSaved(id){
 }
 function closeSaved(){document.getElementById('savedOverlay').classList.remove('show');}
 
+let fcList=[],fcIdx=0;
+function openFc(){
+  fcList=(result.concepts||[]).filter(x=>x&&x.term);
+  if(fcList.length===0){toast('플래시카드로 만들 개념이 없습니다.');return;}
+  fcIdx=0;
+  renderFc();
+  document.getElementById('fcOverlay').classList.add('show');
+}
+function closeFc(){document.getElementById('fcOverlay').classList.remove('show');}
+function renderFc(){
+  const x=fcList[fcIdx];
+  const card=document.getElementById('fcCard');
+  card.classList.remove('flip');
+  document.getElementById('fcTerm').textContent=x.term||'';
+  document.getElementById('fcTermB').textContent=x.term||'';
+  document.getElementById('fcDef').textContent=x.definition||'';
+  const ex=document.getElementById('fcEx');
+  if(x.example){ex.style.display='block';ex.textContent='예시: '+x.example;}else{ex.style.display='none';}
+  document.getElementById('fcCnt').textContent=(fcIdx+1)+' / '+fcList.length;
+  document.getElementById('fcPrev').disabled=fcIdx===0;
+  document.getElementById('fcNext').disabled=fcIdx===fcList.length-1;
+}
+function flipFc(){document.getElementById('fcCard').classList.toggle('flip');}
+function moveFc(d){
+  const n=fcIdx+d;
+  if(n<0||n>=fcList.length)return;
+  fcIdx=n;renderFc();
+}
+function shuffleFc(){
+  for(let i=fcList.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[fcList[i],fcList[j]]=[fcList[j],fcList[i]];}
+  fcIdx=0;renderFc();toast('카드를 섞었습니다.');
+}
 function renderReviewBanner(){
   const el=document.getElementById('revBanner');
   el.style.display='none';
