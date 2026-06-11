@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ExamZen — 시간이 없어도, 더 깊게 공부하세요</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#534AB7">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ExamZen">
 <style>
 :root{
   --color-background-primary:#ffffff;
@@ -473,6 +478,11 @@ function loadSaved(){
     go(3);
     toast('저장된 결과를 불러왔습니다.');
   }catch(e){toast('불러오기에 실패했습니다.');}
+}
+
+// 모바일 앱화(PWA): 홈 화면에 추가하면 앱처럼 실행됩니다
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});
 }
 </script>
 </body>
