@@ -154,6 +154,12 @@ body{background:#EFECE3;font-family:var(--sans);color:var(--ink);padding:18px 8p
 .rev-txt b{color:var(--red);font-family:var(--serif);}
 .rev-go{font-size:12px;padding:7px 16px;background:var(--red);color:#fff;border:none;cursor:pointer;font-weight:700;white-space:nowrap;}
 .rev-later{font-size:11.5px;color:var(--sub);cursor:pointer;text-decoration:underline;white-space:nowrap;}
+.stt-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.stt-btn{font-size:12px;padding:7px 14px;border:1px solid var(--ink);background:#fff;cursor:pointer;font-weight:700;}
+.stt-btn.rec{background:var(--red);border-color:var(--red);color:#fff;animation:pulse 1.2s ease-in-out infinite;}
+@keyframes pulse{50%{opacity:.75;}}
+.stt-status{font-size:11px;color:var(--red);font-weight:700;}
+.stt-interim{font-size:11.5px;color:var(--sub);font-style:italic;min-height:14px;margin-top:4px;}
 .fc-stage{padding:26px 18px 10px;display:flex;justify-content:center;}
 .fc-card{width:100%;max-width:440px;height:260px;perspective:1000px;cursor:pointer;}
 .fc-inner{position:relative;width:100%;height:100%;transition:transform .45s;transform-style:preserve-3d;}
@@ -233,7 +239,12 @@ body{background:#EFECE3;font-family:var(--sans);color:var(--ink);padding:18px 8p
           </div>
           <div id="pdfList"></div>
           <div class="or-line">— 또는 직접 붙여넣기 —</div>
+          <div class="stt-row">
+            <button class="stt-btn" id="sttBtn" onclick="toggleStt()">🎙 강의 받아쓰기 (베타)</button>
+            <span class="stt-status" id="sttStatus"></span>
+          </div>
           <textarea class="paste-box" id="srcText" placeholder="강의 필기·녹취록·교재 내용을 복사해서 여기에 붙여넣으세요.&#10;(PDF를 올렸다면 비워둬도 됩니다.)"></textarea>
+          <div class="stt-interim" id="sttInterim"></div>
           <div class="paste-hint">
             <span>입력한 내용은 저장되지 않고, 문제 생성에만 쓰입니다.</span>
             <span id="charCount">0자</span>
@@ -486,6 +497,7 @@ async function startGenerate(){
   const text=srcEl.value.trim();
   if(text.length<20 && pdfFiles.length===0){toast('강의 내용을 붙여넣거나 PDF를 올려주세요.');return;}
   if(selTypes.size===0){toast('문제 유형을 1개 이상 선택하세요.');return;}
+  if(sttOn)stopStt();
   go(2);
   document.getElementById('retryBtn').style.display='none';
   document.getElementById('sp').style.borderTopColor='var(--red)';
@@ -813,6 +825,59 @@ function deleteSaved(id){
   toast('삭제했습니다.');
 }
 function closeSaved(){document.getElementById('savedOverlay').classList.remove('show');}
+
+/* ---------- 강의 받아쓰기 (브라우저 음성인식, 크롬/엣지) ---------- */
+let sttRec=null,sttOn=false,sttTimer=null,sttStart=0;
+function toggleStt(){if(sttOn){stopStt();}else{startStt();}}
+function startStt(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('이 브라우저는 음성인식을 지원하지 않습니다. 크롬 또는 엣지에서 열어주세요.');return;}
+  sttRec=new SR();
+  sttRec.lang='ko-KR';
+  sttRec.continuous=true;
+  sttRec.interimResults=true;
+  sttRec.onresult=(e)=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const r=e.results[i];
+      if(r.isFinal){appendStt(r[0].transcript);}
+      else{interim+=r[0].transcript;}
+    }
+    document.getElementById('sttInterim').textContent=interim;
+  };
+  sttRec.onerror=(e)=>{
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+      toast('마이크 사용이 차단되었습니다. 주소창 옆 마이크 권한을 허용해 주세요.');
+      stopStt();
+    }
+  };
+  sttRec.onend=()=>{ if(sttOn){try{sttRec.start();}catch(err){}} };
+  try{sttRec.start();}catch(err){toast('음성인식을 시작하지 못했습니다.');return;}
+  sttOn=true;sttStart=Date.now();
+  const btn=document.getElementById('sttBtn');
+  btn.classList.add('rec');btn.textContent='⏹ 받아쓰기 중지';
+  sttTimer=setInterval(()=>{
+    const s=Math.floor((Date.now()-sttStart)/1000);
+    document.getElementById('sttStatus').textContent='● 받아쓰는 중 '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  },1000);
+  document.getElementById('sttStatus').textContent='● 받아쓰는 중...';
+  toast('받아쓰기 시작! 들리는 말이 텍스트 칸에 쌓입니다.');
+}
+function appendStt(t){
+  t=String(t).trim();
+  if(!t)return;
+  srcEl.value=(srcEl.value?srcEl.value.replace(/\s+$/,'')+' ':'')+t;
+  document.getElementById('charCount').textContent=srcEl.value.length+'자';
+}
+function stopStt(){
+  sttOn=false;
+  if(sttRec){try{sttRec.stop();}catch(e){}}
+  clearInterval(sttTimer);
+  const btn=document.getElementById('sttBtn');
+  btn.classList.remove('rec');btn.textContent='🎙 강의 받아쓰기 (베타)';
+  document.getElementById('sttStatus').textContent='';
+  document.getElementById('sttInterim').textContent='';
+}
 
 let fcList=[],fcIdx=0;
 function openFc(){
