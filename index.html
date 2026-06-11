@@ -56,6 +56,8 @@ body{background:#EFECE3;font-family:var(--sans);color:var(--ink);padding:18px 8p
 .cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-top:10px;}
 .cfg-card{background:#fff;border:1px solid var(--line);padding:12px 14px;}
 .cfg-label{font-size:11.5px;color:var(--sub);margin-bottom:8px;font-weight:700;}
+.cfg-input{width:100%;border:1px solid var(--line);padding:7px 10px;font-size:12.5px;margin-bottom:6px;font-family:var(--sans);background:#fff;color:var(--ink);}
+.cfg-input:focus{outline:none;border-color:var(--red);}
 .tbrow{display:flex;flex-wrap:wrap;gap:4px;}
 .tb{font-size:11.5px;padding:3px 10px;border:1px solid var(--line);background:#fff;color:var(--sub);cursor:pointer;}
 .tb.sel{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:500;}
@@ -279,6 +281,20 @@ body{background:#EFECE3;font-family:var(--sans);color:var(--ink);padding:18px 8p
               <span style="font-size:11px;color:var(--sub);">어려움</span>
               <span id="dl" style="font-size:12px;font-weight:700;color:var(--red);min-width:34px;">30%</span>
             </div>
+          </div>
+          <div class="cfg-card">
+            <div class="cfg-label">시험 정보 (선택) — 출제경향 반영</div>
+            <input class="cfg-input" id="exSubject" placeholder="과목·시험명 (예: 인지공학심리학)">
+            <input class="cfg-input" id="exOrg" placeholder="학교·기관 (예: 연세대학교)">
+            <select class="cfg-input" id="exKind" style="margin-bottom:0;">
+              <option value="">시험 종류 (선택 안 함)</option>
+              <option>중간고사</option>
+              <option>기말고사</option>
+              <option>쪽지시험·퀴즈</option>
+              <option>자격증 시험</option>
+              <option>공무원·임용 시험</option>
+              <option>입사·직무 시험</option>
+            </select>
           </div>
         </div>
       </div>
@@ -519,7 +535,12 @@ async function startGenerate(){
         pdfs:pdfs,
         types:Array.from(selTypes),
         count:cnt,
-        difficulty:parseInt(document.getElementById('diffRange').value)
+        difficulty:parseInt(document.getElementById('diffRange').value),
+        examInfo:{
+          subject:document.getElementById('exSubject').value.trim(),
+          org:document.getElementById('exOrg').value.trim(),
+          kind:document.getElementById('exKind').value
+        }
       })
     });
     const rawText=await res.text();

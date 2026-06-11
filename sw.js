@@ -1,5 +1,5 @@
 // ExamZen Service Worker (v1) — 화면 파일만 캐시, API는 항상 네트워크
-const CACHE = 'examzen-v9';
+const CACHE = 'examzen-v10';
 const SHELL = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (e) => {
